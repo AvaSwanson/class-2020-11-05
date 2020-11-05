@@ -33,12 +33,30 @@ week_9 <- kenya %>%
 
 * Write the math for this model.
 
+$$ regchg_i = \beta_0 _{t,i} + \beta_1 local_{t,i} + \beta_2 poverty_{pn,i} + \beta_3 local_{t,i} * poverty_{pn,i} + \epsilon_i$$
+
 * Describe the population for which you are creating the model.
 
+The population is individuals in 1,674 communities in Kenya in 2013.
+
 * Fit the  model and interpret the coefficients. Focus on the coefficient of the interaction term.
+```{r}
+fit <- stan_glm(reg_chg ~ treatment + poverty_n + treatment * poverty_n,
+                data = week_9,
+                refresh = 0)
 
+print(fit, details = FALSE, digits = 10)
 
+# OR R will just fill in so you can just put 
+# fit <- stan_glm(reg_chg ~ treatment * poverty_n,
+#                 data = week_9,
+#                 refresh = 0)
 
+# For the interaction of treatment local and poverty_n we see a 0.0154260059
+# increase in voter registration compared to a 0.0210029449 increase for local
+# alone,0.0026621776 for poverty alone, and 0.0043596025 for treatment control
+# alone.
+```
 
 ## Scene 2
 
@@ -50,13 +68,49 @@ Write a sentence or two for each of these topics:
 
 * What would Wisdom suggest about the use of the `kenya` data to answer this question?
 
+The Kenya dataset gives us the data necessary to answer the question.     
+
 * Describe the ideal Preceptor Table.
 
+The ideal Preceptor Table would have local and control treatment outcomes for each individual and include other variable that may impact the population including the polling station, poverty, etc.  
+
 * Graph the posterior probability distribution `reg_chg` if polling station 007/001 were to be assigned treatment in January.
+```{r}
+fit <- stan_glm(reg_chg ~ treatment + poverty_n + treatment * poverty_n,
+                data = week_9,
+                refresh = 0)
+
+new_obs <- tibble(treatment = "local",
+                  poverty_n = -1.60835093)
+
+pp <- posterior_predict(fit, 
+                        new_data = new_obs) %>%
+  as_tibble() %>%
+  mutate_all(as.numeric)
+
+pp
+
+pp %>%
+  ggplot(aes(x = `1`,
+             y = after_stat(count/sum(count)))) +
+  geom_histogram(fill = "blue", color = "white", alpha = 0.5, bins = 100) +
+  labs(title = "Posterior Density Distribution for Polling Station 007/001",
+         subtitle = 
+         "Average treatment effect on voter registration",
+         x = "Average Voter Registration Change",
+         y = "Probability") +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  theme_bw() +
+  geom_vline(xintercept = 0.04)
+
+sum(pp$`1` > 0.04)/length(pp$`1`)
+
+```
 
 * Answer the President's question.
 
-
+ 
 
 
 ## Scene 3
